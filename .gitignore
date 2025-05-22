@@ -7,3 +7,8 @@ nxpsum
 *.bak
 build/**
 .clangd
+.cache
+.cache/**
+.vscode
+.vscode/**
+compile_commands.json
