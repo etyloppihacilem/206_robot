@@ -20,6 +20,7 @@
  ******************************************************************************/
 
 #include "LPC17xx.h"
+#include "system_LPC17xx.h"
 
 #define WEAK __attribute__((weak))
 //*****************************************************************************
@@ -218,6 +219,7 @@ void Reset_Handler(void) {
     // Call the application's entry point.
     //
     SystemInit();
+    SystemCoreClockUpdate();
     main();
 }
 
