@@ -101,3 +101,13 @@ void debug_put_uint(uint32_t n) {
         debug_put_uint(n / 10);
     uart0_putchar((n % 10) + '0');
 }
+
+void debug_put_hex(uint32_t n) {
+    if (n >= 16)
+        debug_put_uint(n / 10);
+    char c = n % 16;
+    if (c < 10)
+        uart0_putchar(c + '0');
+    else
+        uart0_putchar(c - 10 + 'A');
+}

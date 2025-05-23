@@ -17,3 +17,4 @@ void debug_write(const char *str);
 void debug_put_int(int32_t n);
 void debug_put_uint(uint32_t n);
 int  uart0_putchar(int c); // peut être bufferiser ça si les prints prennent trop de temps.
+void debug_put_hex(uint32_t n);
