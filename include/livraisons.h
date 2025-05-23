@@ -29,4 +29,3 @@ extern char    ns_side;
 extern char    ns_letter;
 extern uint8_t vitesse_cible; // en %
 extern char    state;
-extern uint8_t id_robot;

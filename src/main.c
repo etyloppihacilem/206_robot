@@ -19,7 +19,6 @@ char    ns_side       = droite;
 char    ns_letter     = 0;
 uint8_t vitesse_cible = 50; // en %
 char    state         = dispo;
-uint8_t id_robot      = 1;
 
 int main(void) {
     init_ultrasonic();
