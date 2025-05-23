@@ -49,6 +49,15 @@ void init_params() {
     LPC_GPIO0->FIODIR |= (3 << ligne1) | (3 << ligne3);                                // les lignes en sortie
     LPC_GPIO0->FIODIR &= ~(1 << colone1 | 1 << colone2 | 1 << colone3 | 1 << colone4); // les colones en entrée
     LPC_GPIO0->FIOPIN |= (3 << ligne1) | (3 << ligne3);                                // on remet la ligne niveau haut
+    LPC_GPIO0->FIOPIN &= ~(1 << ligne4); // on met la ligne où se trouve les boutons au niveau bas
 }
 
-void read_params() {}
+void read_params() {
+    LPC_GPIO0->FIOPIN |= (3 << ligne1) | (3 << ligne3); // on remet la ligne niveau haut
+    uint8_t temp       = read_value(ligne2);
+    mesure_tele        = (temp & 3 << 2) >> 2;
+    debug_tele         = temp & 3;
+    debug_pos          = read_value(ligne3) & 7;
+    debug_moteur       = (read_value(ligne4) & 3 << 2) >> 2;
+    LPC_GPIO0->FIOPIN &= ~(1 << ligne4); // on met la ligne où se trouve les boutons au niveau bas
+}
