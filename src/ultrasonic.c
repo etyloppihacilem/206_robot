@@ -1,7 +1,12 @@
+#include "ultrasonic.h"
 #include "LPC17xx.h"
 #include "core_cmFunc.h"
+#include "params.h"
 
 #define IMPULSES_COUNT 20
+
+uint32_t reset_cpt      = 4000; // 5Hz
+int32_t  ultrasonic_cpt = 0;
 
 static int8_t   nbpulse    = 1; // for init impulse to set 0 out
 static uint32_t time_count = 0;
@@ -18,6 +23,10 @@ void PWM1_IRQHandler() {
     if (LPC_PWM1->IR & 1) {
         LPC_PWM1->IR = 1;
         time_count++;
+        if (ultrasonic_cpt-- <= 0) {
+            measure_ultrasonic();
+            ultrasonic_cpt = reset_cpt;
+        }
         // ici gérer l'émission de BIP si nécessaire.
     }
 }
@@ -30,6 +39,21 @@ void EINT3_IRQHandler() {
 }
 
 void init_ultrasonic(void) { // UltraSonic Sensor
+    switch (mesure_tele) {
+        default:
+        case Hz10:
+            reset_cpt = 2000;
+            break;
+        case Hz15:
+            reset_cpt = 1334;
+            break;
+        case Hz20:
+            reset_cpt = 1000;
+            break;
+        case Hz25:
+            reset_cpt = 800;
+    }
+    ultrasonic_cpt       = reset_cpt;
     // PINSEL
     LPC_PINCON->PINSEL3 |= 1 << 17; // P1.24 en mode PWM 1.5
     LPC_PINCON->PINSEL4 |= 1 << 26; // P2.13 en mode EINT3
@@ -61,7 +85,7 @@ void measure_ultrasonic(void) {
     __disable_irq();
     time_count = 0;
     __enable_irq();
-    LPC_PWM1->PCR |= 1 << 13;      // Enable PWM5 output
+    LPC_PWM1->PCR |= 1 << 13;  // Enable PWM5 output
     LPC_PWM1->TCR |= (1 << 3); // Enable PWM Counter and pwm
 }
 

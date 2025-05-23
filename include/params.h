@@ -20,10 +20,10 @@ typedef enum {
 } t_mesure_tele;
 
 typedef enum {
-    rien_tele = 0b11,
-    nb_mesure = 0b10,
-    cpt_brut  = 0b01,
-    distance  = 0b00,
+    rien_tele   = 0b11,
+    nb_mesure   = 0b10,
+    cpt_brut    = 0b01,
+    dist_mesure = 0b00,
 } t_debug_tele;
 
 typedef enum {
@@ -51,3 +51,4 @@ extern t_debug_pos    debug_pos;
 extern t_debug_moteur debug_moteur;
 
 void init_params();
+void read_params();

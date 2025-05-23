@@ -11,6 +11,7 @@
 #include "bobines.h"
 #include "livraisons.h"
 #include "moteurs.h"
+#include "params.h"
 #include "ultrasonic.h"
 #include <stdint.h>
 
@@ -21,6 +22,8 @@ uint8_t vitesse_cible = 50; // en %
 char    state         = dispo;
 
 int main(void) {
+    init_params();
+    read_params();
     init_ultrasonic();
     init_moteurs();
     init_bobines();
