@@ -1,26 +1,32 @@
 #include "LPC17xx.h"
+#include "core_cmFunc.h"
 
 #define IMPULSES_COUNT 20
 
-static int8_t   nbpulse  = 1; // for init impulse to set 0 out
-static uint32_t distance = 0; // UINT32_MAX to tell incoherent result.
+static int8_t   nbpulse    = 1; // for init impulse to set 0 out
+static uint32_t time_count = 0;
+static uint32_t distance   = 0; // UINT32_MAX to tell incoherent result.
 
 void PWM1_IRQHandler() {
-    LPC_PWM1->IR = 1 << 9; // Acquittement de l'IRQ de MR5
-    if (--nbpulse <= 0) {
-        LPC_PWM1->PCR &= ~(1 << 13);    // Disable PWM1.5 output
-        LPC_PWM1->TCR &= ~(1 | 1 << 3); // Disable Counter
+    if (LPC_PWM1->IR & 1 << 9) {
+        LPC_PWM1->IR = 1 << 9; // Acquittement de l'IRQ de MR5
+        if (--nbpulse <= 0) {
+            LPC_PWM1->PCR &= ~(1 << 13); // Disable PWM1.5 output
+            // LPC_PWM1->TCR &= ~(1 | 1 << 3); // Disable Counter
+        }
+    }
+    if (LPC_PWM1->IR & 1) {
+        LPC_PWM1->IR = 1;
+        time_count++;
+        // ici gÃ©rer l'Ã©mission de BIP si nÃ©cessaire.
     }
 }
 
 void EINT3_IRQHandler() {
-    LPC_TIM0->TCR &= ~(1 << 0); // Stop Timer
-    LPC_SC->EXTINT = 1 << 3;    // Acquittement de l'IRQ
-    distance       = (LPC_TIM0->TC * 344ul * 100ul) / (2ul * 25000000ul)
-             + 2;     // vitesse du son, puis division par l'horloge et 2x
-                      // distance et enfin conversion en CM
-                      // puis offset de la distance entre le mic et le haut-parleur
-    LPC_TIM0->TC = 0; // Reset compteur
+    LPC_SC->EXTINT = 1 << 3; // Acquittement de l'IRQ
+    distance       = (time_count * 344ul * 100ul) / (2ul * 40000ul) + 2;
+    // vitesse du son, puis division par la frÃ©quence PWM et 2x distance et enfin conversion en CM puis offset de la
+    // distance entre le mic et le haut-parleur
 }
 
 void init_ultrasonic(void) { // UltraSonic Sensor
@@ -29,9 +35,10 @@ void init_ultrasonic(void) { // UltraSonic Sensor
     LPC_PINCON->PINSEL4 |= 1 << 26; // P2.13 en mode EINT3
     // init PWM5
     LPC_PWM1->MCR       |= (1 << 1) | (1 << 15); // Reset on MR0 and interrupt on MR5
-    LPC_PWM1->MR0        = 625;                  // P¨¦riode = 40kHz
+    LPC_PWM1->MR0        = 625;                  // PÃ©riode = 40kHz
     LPC_PWM1->MR5        = 625 / 2;              // 50% rapport cyclique
     NVIC_EnableIRQ(PWM1_IRQn);
+    NVIC_SetPriority(PWM1_IRQn, 5);
     // Putting PWM out at 0 level
     LPC_PWM1->PCR |= 1 << 13;      // Enable PWM5 output
     LPC_PWM1->TCR |= 1 | (1 << 3); // Enable PWM Counter and pwm
@@ -41,19 +48,21 @@ void init_ultrasonic(void) { // UltraSonic Sensor
     LPC_SC->EXTMODE  |= (1 << 3);  // Mise en detection par front du EINT3
     LPC_SC->EXTPOLAR &= ~(1 << 3); // Mise en detection sur rising edge
     NVIC_EnableIRQ(EINT3_IRQn);    // Enable the EINT3
-    LPC_TIM0->TC = 0;
+    NVIC_SetPriority(EINT3_IRQn, 4);
 }
 
 void measure_ultrasonic(void) {
     // Lancer une mesure de distance par ultrason
     if (nbpulse != 0 || LPC_TIM0->TC != 0)
-        return; // une mesure est d¨¦j¨¤ en cours
+        return; // une mesure est dÃ©jÃ  en cours
 
-    nbpulse        = IMPULSES_COUNT;
-    distance       = 0;            // to tell a measure is ongoing
+    nbpulse = IMPULSES_COUNT;
+    // distance       = 0; // to tell a measure is ongoing
+    __disable_irq();
+    time_count = 0;
+    __enable_irq();
     LPC_PWM1->PCR |= 1 << 13;      // Enable PWM5 output
-    LPC_PWM1->TCR |= 1 | (1 << 3); // Enable PWM Counter and pwm
-    LPC_TIM0->TCR |= 1;            // Enable Timer
+    LPC_PWM1->TCR |= (1 << 3); // Enable PWM Counter and pwm
 }
 
 uint32_t get_distance_ultrasonic(void) {
