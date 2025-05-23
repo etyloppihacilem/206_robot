@@ -23,26 +23,9 @@ static void delay_ms(uint32_t ms)
 int main(void) {
     SystemCoreClockUpdate();
     // init_ultrasonic();
-    // measure_ultrasonic();
     init_moteurs();
+    // measure_ultrasonic();
+    // deplacement(0, 1);
     while (1) {
-        // tout droit
-        deplacement(1, 1);
-        delay_ms(4000); // 2s
-        // plus vite
-        deplacement(256, 256);
-        delay_ms(2000); // 2s
-        // encore plus vite
-        deplacement(512, 512);
-        delay_ms(2000); // 2s
-        // à gauche
-        deplacement(1, 512);
-        delay_ms(2000); // 2s
-        // à droite
-        deplacement(512, 1);
-        delay_ms(2000); // 2s
-        // à l'arrêt
-        deplacement(0, 0);
-        delay_ms(2000); // 2s
     }
 }
