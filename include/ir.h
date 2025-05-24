@@ -10,4 +10,11 @@
 
 #pragma once
 
+typedef enum {
+    ir_dispo       = 0x8,
+    ir_enlevecolis = 0x4,
+    ir_colispris   = 0x2,
+    ir_livraison   = 0x1,
+} etat_ir;
+
 void init_ir();
