@@ -9,6 +9,8 @@
 ##################################################################################################################### */
 
 #include "bobines.h"
+#include "com_debug.h"
+#include "ir.h"
 #include "livraisons.h"
 #include "moteurs.h"
 #include "params.h"
@@ -22,10 +24,12 @@ uint8_t vitesse_cible = 50; // en %
 char    state         = dispo;
 
 int main(void) {
-    init_params();
-    read_params();
-    init_ultrasonic();
-    init_moteurs();
-    init_bobines();
+    // init_params();
+    // read_params();
+    init_com_debug(9600);
+    // init_ultrasonic();
+    // init_moteurs();
+    // init_bobines();
+    init_ir();
     while (1) {}
 }
