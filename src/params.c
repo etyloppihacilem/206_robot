@@ -27,6 +27,10 @@ typedef enum {
 } matrice;
 
 uint8_t id_robot = 0;
+t_mesure_tele  mesure_tele;
+t_debug_tele   debug_tele;
+t_debug_pos    debug_pos;
+t_debug_moteur debug_moteur;
 
 uint8_t read_value(matrice y) { // OPTI: peut être passer ça en static
     uint32_t ret = 1 << (y);

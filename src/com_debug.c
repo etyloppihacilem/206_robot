@@ -53,12 +53,10 @@ void set_uart0_baud(uint32_t baud) {
 }
 
 void init_com_debug(uint32_t baudrate) {
-    LPC_SC->PCONP |= (1 << 4); // on active l'horloge et le power de UART 1
+    LPC_SC->PCONP |= (1 << 3); // on active l'horloge et le power de UART 0
 
-    LPC_PINCON->PINSEL0 &= ~(3 << 30);
-    LPC_PINCON->PINSEL0 |= 1 << 30; // P0.15 = TXD1
-    LPC_PINCON->PINSEL1 &= ~3;
-    LPC_PINCON->PINSEL1 |= 1; // P0.16 = RXD1
+    LPC_PINCON->PINSEL0 &= ~((3 << 4) | (3 << 6));
+    LPC_PINCON->PINSEL0 |= (1 << 4) | (1 << 6); // P0.2 = TXD0, P0.3 = RXD0
 
     // Désactiver interruptions pendant init
     LPC_UART0->IER = 0;
