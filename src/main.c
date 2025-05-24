@@ -24,12 +24,12 @@ uint8_t vitesse_cible = 50; // en %
 char    state         = dispo;
 
 int main(void) {
-    // init_params();
-    // read_params();
-    init_com_debug(9600);
-    // init_ultrasonic();
-    // init_moteurs();
-    // init_bobines();
+    init_params();
+    read_params();
+    init_com_debug(115200);
+    init_ultrasonic();
+    init_moteurs();
+    init_bobines();
     init_ir();
     while (1) {}
 }

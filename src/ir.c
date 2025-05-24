@@ -20,7 +20,7 @@ uint8_t  current_level      = 0;
 uint8_t  trame0[TRAME_SIZE] = { 0 };
 uint8_t  trame1[TRAME_SIZE] = { 0 };
 uint8_t *trame[2]           = { trame0, trame1 };
-uint8_t  current_trame      = 0;
+uint8_t  current_trame      = 1;
 uint8_t  c                  = 0;
 
 void TIMER3_IRQHandler() {
@@ -30,8 +30,12 @@ void TIMER3_IRQHandler() {
     if (++impulsion == 8) {
         impulsion     = 0;
         current_level = trame[current_trame][c++];
-        if (c >= TRAME_SIZE)
-            c = 0;
+        if (c >= TRAME_SIZE) {
+            c                 = 0;
+            LPC_GPIO1->FIOSET = 1 << 18;
+        } else if (c == 3) {
+            LPC_GPIO1->FIOCLR = 1 << 18;
+        }
     }
 }
 
@@ -39,15 +43,16 @@ void write_to_trame(uint8_t data, uint8_t pos, uint8_t t) {
     // data start at bit 2
     if (pos > 3 || t > 1)
         return;
-    for (int8_t i = 3; i > 0; i--) {
+    for (int8_t i = 3; i >= 0; i--) {
         if (data & 1 << i) {
-            trame[t][(pos * 4) * (i * 3) + 2] = 1;
-            trame[t][(pos * 4) * (i * 3) + 3] = 1;
-            trame[t][(pos * 4) * (i * 3) + 4] = 0;
+            trame[t][(pos * 12) + ((3 - i) * 3) + 2] = 1;
+            trame[t][(pos * 12) + ((3 - i) * 3) + 3] = 1;
+            trame[t][(pos * 12) + ((3 - i) * 3) + 4] = 0;
+
         } else {
-            trame[t][(pos * 4) * (i * 3) + 2] = 1;
-            trame[t][(pos * 4) * (i * 3) + 3] = 0;
-            trame[t][(pos * 4) * (i * 3) + 4] = 0;
+            trame[t][(pos * 12) + ((3 - i) * 3) + 2] = 1;
+            trame[t][(pos * 12) + ((3 - i) * 3) + 3] = 0;
+            trame[t][(pos * 12) + ((3 - i) * 3) + 4] = 0;
         }
     }
 }
@@ -73,30 +78,34 @@ uint8_t update_etat(uint8_t t) {
 }
 
 uint8_t update_vitesse(uint8_t t) {
-    uint8_t vitesse = (vitesse_cible - 20) / 5;
+    uint8_t vitesse = 0;
+    if (vitesse_cible > 20)
+        vitesse = (vitesse_cible - 20) / 5;
     write_to_trame(vitesse, 1, t);
     return vitesse;
 }
 
 void update_ir() {
-    uint8_t next_level = 0;
-    if (current_level == 0)
-        next_level = 1;
-    uint8_t sum = id_robot;
-    sum += update_etat(next_level);
-    sum += update_vitesse(next_level);
-    write_to_trame((~sum) + 1, 3, next_level);
-    current_level = next_level;
+    uint8_t sum        = id_robot;
+    uint8_t next_trame = 0;
+    if (current_trame == 0)
+        next_trame = 1;
+    sum += update_vitesse(next_trame);
+    sum += update_etat(next_trame);
+    write_to_trame((~sum) + 1, 3, next_trame);
+    current_level = next_trame;
 }
 
 void init_ir() {
     // trame init
     trame0[0] = 1; // debut de la data à partir du bit 2
     write_to_trame(id_robot, 0, 0);
+    update_ir();
     for (uint8_t i = 0; i < TRAME_SIZE; i++)
         trame1[i] = trame0[i]; // on copie tout ce qui est pareil et ne changera pas
-    // TODO: init IR SYNC
-
+    // IR SYNC 2
+    LPC_PINCON->PINSEL3 &= 3 << 4;
+    LPC_GPIO1->FIODIR   |= 1 << 18;
     // module init
     LPC_SC->PCLKSEL1    |= 1 << 15; // timer3 at 50MHz
     LPC_SC->PCONP       |= 1 << 23; // enable timer3
