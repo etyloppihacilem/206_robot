@@ -17,6 +17,8 @@
 #include "ultrasonic.h"
 #include <stdint.h>
 
+#include "LPC17xx.h"
+
 uint8_t next_stop     = 0;
 char    ns_side       = droite;
 char    ns_letter     = 0;
@@ -63,7 +65,30 @@ void conducteur() {
     else
         mot_gauche -= coef_correction * div_amplitude;
 
-    deplacement(mot_droit, mot_gauche);
+    debug_write("dom_val ");
+    debug_put_uint(position.com_val);
+    debug_write("\r\nb1_val ");
+    debug_put_uint(position.b1_val);
+    debug_write("\r\nb2_val ");
+    debug_put_uint(position.b2_val);
+    debug_write("\r\nphase ");
+    debug_put_uint(position.phase);
+    debug_write("\r\nDROIT ");
+    debug_put_uint(mot_droit);
+    debug_write(" GAUCHE ");
+    debug_put_uint(mot_gauche);
+    debug_write("\r\n");
+
+    deplacement(0, 0);
+    // deplacement(mot_droit, mot_gauche);
+}
+
+static void delay_ms(uint32_t ms)
+{
+    /* Petit délai bloquant : ~1 ms par incrément lorsque l’horloge cœur = 100 MHz.
+       Ajuste le facteur si tu changes SystemCoreClock.                    */
+    volatile uint32_t cycles = ms * (SystemCoreClock / 4000U);
+    while (cycles--) __NOP();
 }
 
 int main(void) {
@@ -73,7 +98,12 @@ int main(void) {
     init_ultrasonic();
     init_moteurs();
     init_bobines();
+    debug_write("hi\r\n");
     init_ir();
+    debug_write("coucou\r\n");
 
-    while (1) {}
+    while (1) {
+        conducteur();
+        delay_ms(500);
+    }
 }

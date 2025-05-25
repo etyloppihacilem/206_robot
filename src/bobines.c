@@ -11,6 +11,7 @@
 
 #include "bobines.h"
 #include "LPC17xx.h"
+#include "com_debug.h"
 #include "livraisons.h"
 #include "params.h"
 #include <stdint.h>
@@ -45,10 +46,11 @@ static void parsing_porteuse() {
 }
 
 void EINT2_IRQHandler() {
-    LPC_TIM1->TCR = 0;
-    uint32_t time = LPC_TIM1->TC;
-    LPC_TIM1->TCR = 1 << 1;
-    LPC_TIM1->TCR = 1;
+    LPC_SC->EXTINT |= 1 << 2;
+    LPC_TIM1->TCR   = 0;
+    uint32_t time   = LPC_TIM1->TC;
+    LPC_TIM1->TCR   = 1 << 1;
+    LPC_TIM1->TCR   = 1;
     if (time > entete) {
         if (message != 1 && !(message & (1 << 15)))
             ;
@@ -62,18 +64,21 @@ void EINT2_IRQHandler() {
 }
 
 void TIMER1_IRQHandler() {
-    LPC_TIM1->IR     = 1;
-    position.phase   = LPC_GPIO1->FIOPIN;
+    LPC_TIM1->IR   = 1;
+    position.phase = LPC_GPIO1->FIOPIN;
+    position.phase = (position.phase >> 13) & 0x3;
+}
+
+void ADC_IRQHandler(void) {
     position.com_val = (LPC_ADC->ADDR2 >> 4) & 0xFFF;
     position.b1_val  = (LPC_ADC->ADDR4 >> 4) & 0xFFF;
     position.b2_val  = (LPC_ADC->ADDR5 >> 4) & 0xFFF;
-    position.phase   = (position.phase >> 13) & 0x3;
 }
 
 void init_bobines() {
     // setting up GPIO for digital read
     LPC_PINCON->PINSEL3  &= ~(0xF << 26);
-    LPC_GPIO1->FIODIR    &= ~(0x3 << 13);
+    LPC_GPIO1->FIODIR    &= ~(0x3 << 13); // P1.26 et P1.27
     // setting up ADC pins and pincon
     LPC_SC->PCONP        |= 1 << 12; // enabling ADC
     LPC_PINCON->PINSEL1  &= ~(3 << 18);
@@ -85,9 +90,13 @@ void init_bobines() {
     LPC_PINCON->PINMODE3 |= (2 << 28) | (2 << 30);
     // ADC config
     LPC_ADC->ADCR         = (1 << 2) | (1 << 4) | (1 << 5) // SEL: AD0.2, AD0.4, AD0.5
-                  | (22 << 8)                              // CLKDIV: ajusté pour < 13 MHz
-                  | (1 << 16)                              // BURST: mode burst activé
-                  | (1 << 21);                             // PDN: ADC allumé
+                  | (1 << 8)                               /* CLKDIV=1 → ADCCLK ≃12.5 MHz*/
+                  | (0 << 16)                              /* BURST = 0 (mode start)     */
+                  | (0 << 27)                              /* EDGE  = rising             */
+                  | (6 << 24)                              /* START = 110  (MAT1.0)      */
+                  | (1 << 21);                             /* PDN  = 1 (power up)        */
+    LPC_ADC->ADINTEN = 1 << 8;                             /* IRQ globale à chaque fin   */
+    NVIC_EnableIRQ(ADC_IRQn);
     // setting up EINT2
     LPC_PINCON->PINSEL4 &= ~(3 << 24); // EINT2 on P2.12
     LPC_PINCON->PINSEL4 |= 1 << 24;
@@ -96,12 +105,14 @@ void init_bobines() {
     LPC_SC->EXTINT       = 1 << 2; // clearing EXTINT
 
     // setting up TIMER1
-    LPC_TIM1->PR  = 24; // 10MHz
-    LPC_TIM1->TCR = 1 << 1;
-    LPC_TIM1->TCR = 1;
-    LPC_TIM1->MR0 = 39; // 4us
-    LPC_TIM1->MCR = 7;  // reset, stop and interrupt on MR0
-    NVIC_EnableIRQ(EINT2_IRQn);
+    LPC_PINCON->PINSEL3 |= (3 << 12); // P1.22 = MAT1.0
+
+    LPC_TIM1->TCR = 2;               // reset
+    LPC_TIM1->PR  = 24;              // tick = 1 µs (25 MHz / (24+1))
+    LPC_TIM1->MR0 = 3;              // période 4 µs  (10 kéch/s)
+    LPC_TIM1->EMR = (2 << 4);        // set high on every match
+    LPC_TIM1->MCR = 7;               // stop, reset and int at MR0
     NVIC_SetPriority(EINT2_IRQn, 3); // un peu moins prioritaire que l'IR
-    NVIC_EnableIRQ(TIMER1_IRQn);     // faible priorité car en vrai osef
+    NVIC_EnableIRQ(EINT2_IRQn);
+    NVIC_EnableIRQ(TIMER1_IRQn); // faible priorité car en vrai osef
 }

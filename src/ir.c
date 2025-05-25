@@ -32,9 +32,9 @@ void TIMER3_IRQHandler() {
         current_level = trame[current_trame][c++];
         if (c >= TRAME_SIZE) {
             c                 = 0;
-            LPC_GPIO1->FIOSET = 1 << 18;
+            LPC_GPIO1->FIOSET = 1 << 28;
         } else if (c == 3) {
-            LPC_GPIO1->FIOCLR = 1 << 18;
+            LPC_GPIO1->FIOCLR = 1 << 28;
         }
     }
 }
@@ -104,8 +104,8 @@ void init_ir() {
     for (uint8_t i = 0; i < TRAME_SIZE; i++)
         trame1[i] = trame0[i]; // on copie tout ce qui est pareil et ne changera pas
     // IR SYNC 2
-    LPC_PINCON->PINSEL3 &= 3 << 4;
-    LPC_GPIO1->FIODIR   |= 1 << 18;
+    LPC_PINCON->PINSEL3 &= 3 << 24;
+    LPC_GPIO1->FIODIR   |= 1 << 28;
     // module init
     LPC_SC->PCLKSEL1    |= 1 << 15; // timer3 at 50MHz
     LPC_SC->PCONP       |= 1 << 23; // enable timer3
