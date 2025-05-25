@@ -93,7 +93,7 @@ void update_ir() {
     sum += update_vitesse(next_trame);
     sum += update_etat(next_trame);
     write_to_trame((~sum) + 1, 3, next_trame);
-    current_level = next_trame;
+    current_trame = next_trame;
 }
 
 void init_ir() {
