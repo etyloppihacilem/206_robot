@@ -1,6 +1,5 @@
 /* ##################################646f75627420796f7572206f776e206578697374656e6365###################################
 
-;wa
                """          bobines.c
         -\-    _|__
          |\___/  . \        Created on 23 May. 2025 at 11:36
@@ -45,16 +44,20 @@ static void parsing_porteuse() {
     }
 }
 
+static uint32_t last_time = 0;
+
 void EINT2_IRQHandler() {
     LPC_SC->EXTINT |= 1 << 2;
-    LPC_TIM1->TCR   = 0;
     uint32_t time   = LPC_TIM1->TC;
-    LPC_TIM1->TCR   = 1 << 1;
     LPC_TIM1->TCR   = 1;
+    if (time - last_time > pause) {
+        LPC_TIM1->TCR = 1 << 1;
+        LPC_TIM1->TCR = 1;
+        last_time     = 0;
+    }
     if (time > entete) {
         if (message != 1 && !(message & (1 << 15)))
-            ;
-        parsing_porteuse();
+            parsing_porteuse();
         message = 1;
     } else if (time > porteuse_1) {
         message = (message << 1) | 1;
@@ -69,7 +72,7 @@ void TIMER1_IRQHandler() {
     position.phase = (position.phase >> 13) & 0x3;
 }
 
-void ADC_IRQHandler(void) {
+void ADC_IRQHandler() {
     position.com_val = (LPC_ADC->ADDR2 >> 4) & 0xFFF;
     position.b1_val  = (LPC_ADC->ADDR4 >> 4) & 0xFFF;
     position.b2_val  = (LPC_ADC->ADDR5 >> 4) & 0xFFF;
@@ -89,14 +92,12 @@ void init_bobines() {
     LPC_PINCON->PINMODE3 &= ~(3 << 28 | 3 << 30); // P1.30 et P1.31 sans pull du tout
     LPC_PINCON->PINMODE3 |= (2 << 28) | (2 << 30);
     // ADC config
-    LPC_ADC->ADCR         = (1 << 2) | (1 << 4) | (1 << 5) // SEL: AD0.2, AD0.4, AD0.5
-                  | (1 << 8)                               /* CLKDIV=1 → ADCCLK ≃12.5 MHz*/
-                  | (0 << 16)                              /* BURST = 0 (mode start)     */
-                  | (0 << 27)                              /* EDGE  = rising             */
-                  | (6 << 24)                              /* START = 110  (MAT1.0)      */
-                  | (1 << 21);                             /* PDN  = 1 (power up)        */
-    LPC_ADC->ADINTEN = 1 << 8;                             /* IRQ globale à chaque fin   */
-    NVIC_EnableIRQ(ADC_IRQn);
+
+    LPC_ADC->ADCR = (1 << 2) | (1 << 4) | (1 << 5) // SEL: AD0.2, AD0.4, AD0.5
+                  | (1 << 8)                       // CLKDIV: ajusté pour < 13 MHz
+                  | (0x6 << 24)                    // start on MAT1.0
+                  | (1 << 21);                     // PDN: ADC allumé
+    LPC_ADC->ADINTEN     = 1 << 8;
     // setting up EINT2
     LPC_PINCON->PINSEL4 &= ~(3 << 24); // EINT2 on P2.12
     LPC_PINCON->PINSEL4 |= 1 << 24;
@@ -105,14 +106,17 @@ void init_bobines() {
     LPC_SC->EXTINT       = 1 << 2; // clearing EXTINT
 
     // setting up TIMER1
-    LPC_PINCON->PINSEL3 |= (3 << 12); // P1.22 = MAT1.0
+    LPC_SC->PCONP |= 1 << 2; // enabling timer 1
+    LPC_TIM1->PR   = 24;     // 1MHz
+    LPC_TIM1->TCR  = 1 << 1;
+    LPC_TIM1->MR0  = 499; // 500us
+    LPC_TIM1->MCR  = 1;   // reset, stop and interrupt on MR0
+    LPC_TIM1->EMR &= ~(3 << 4);
+    LPC_TIM1->EMR |= 2 << 4; // MAT1.0 HIGH at MR0
 
-    LPC_TIM1->TCR = 2;               // reset
-    LPC_TIM1->PR  = 24;              // tick = 1 µs (25 MHz / (24+1))
-    LPC_TIM1->MR0 = 3;              // période 4 µs  (10 kéch/s)
-    LPC_TIM1->EMR = (2 << 4);        // set high on every match
-    LPC_TIM1->MCR = 7;               // stop, reset and int at MR0
-    NVIC_SetPriority(EINT2_IRQn, 3); // un peu moins prioritaire que l'IR
+    // setting up IRQ
     NVIC_EnableIRQ(EINT2_IRQn);
-    NVIC_EnableIRQ(TIMER1_IRQn); // faible priorité car en vrai osef
+    NVIC_SetPriority(EINT2_IRQn, 3); // un peu moins prioritaire que l'IR
+    NVIC_EnableIRQ(TIMER1_IRQn);     // faible priorité car en vrai osef
+    NVIC_EnableIRQ(ADC_IRQn);
 }

@@ -104,12 +104,12 @@ void init_ir() {
     for (uint8_t i = 0; i < TRAME_SIZE; i++)
         trame1[i] = trame0[i]; // on copie tout ce qui est pareil et ne changera pas
     // IR SYNC 2
-    LPC_PINCON->PINSEL3 &= 3 << 24;
-    LPC_GPIO1->FIODIR   |= 1 << 28;
+    LPC_PINCON->PINSEL3 &= 3 << 4; // P1.18 pour IRSync 2
+    LPC_GPIO1->FIODIR   |= 1 << 18;
     // module init
     LPC_SC->PCLKSEL1    |= 1 << 15; // timer3 at 50MHz
     LPC_SC->PCONP       |= 1 << 23; // enable timer3
-    LPC_PINCON->PINSEL0 |= 3 << 20;
+    LPC_PINCON->PINSEL0 |= 3 << 20; // P0.10 as MAT3.0
 
     LPC_TIM3->PR  = 49;     // to make timer3 at 1MHz, period of 1us
     LPC_TIM3->MR0 = 1;      // rapoprt cyclique de l'impulsion

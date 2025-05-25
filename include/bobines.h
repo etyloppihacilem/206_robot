@@ -16,6 +16,7 @@ typedef enum {
     porteuse_0 = 31250, // 1,25ms
     porteuse_1 = 50000, // 2ms
     entete     = 68750, // 2,75ms
+    pause      = 10000, // 0,4ms
 } t_porteuse_seq;
 
 typedef enum e_message_type {
