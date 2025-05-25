@@ -16,9 +16,11 @@
 #include <stdint.h>
 
 #define PORTEUSE_INBOX_SIZE 16
+#define MESURE_AFTER 399 // us
 
-static uint16_t message  = 1;
-position_info   position = { 0 };
+static uint16_t         message    = 1;
+volatile static uint8_t cpt_mesure = 0;
+position_info           position   = { 0 };
 
 static void parsing_porteuse() {
     uint8_t robot = (message & 0xF << 7) >> 7;
@@ -51,9 +53,13 @@ void EINT2_IRQHandler() {
     uint32_t time   = LPC_TIM1->TC;
     LPC_TIM1->TCR   = 1;
     if (time - last_time > pause) {
-        LPC_TIM1->TCR = 1 << 1;
-        LPC_TIM1->TCR = 1;
-        last_time     = 0;
+        LPC_TIM1->TCR  = 1 << 1;
+        LPC_TIM1->EMR &= ~1;
+        LPC_TIM1->MR0  = MESURE_AFTER;
+        if (cpt_mesure++ >= 2)
+            cpt_mesure = 0;
+        LPC_TIM1->TCR  = 1;
+        last_time      = 0;
     }
     if (time > entete) {
         if (message != 1 && !(message & (1 << 15)))
@@ -67,15 +73,36 @@ void EINT2_IRQHandler() {
 }
 
 void TIMER1_IRQHandler() {
+    // if (cpt_mesure < 3) {
+    //     LPC_TIM1->MR0 += 10;
+    //     LPC_TIM1->EMR &= ~1;
+    // }
     LPC_TIM1->IR   = 1;
     position.phase = LPC_GPIO1->FIOPIN;
     position.phase = (position.phase >> 13) & 0x3;
 }
 
 void ADC_IRQHandler() {
-    position.com_val = (LPC_ADC->ADDR2 >> 4) & 0xFFF;
-    position.b1_val  = (LPC_ADC->ADDR4 >> 4) & 0xFFF;
-    position.b2_val  = (LPC_ADC->ADDR5 >> 4) & 0xFFF;
+    (void) LPC_ADC->ADGDR; // <-- lit & efface DONE global
+    LPC_ADC->ADCR &= ~0xFF;
+    // debug_write("mes: ");
+    // debug_put_uint(cpt_mesure);
+    // debug_write("\r\n");
+    switch (cpt_mesure) {
+        case 0:
+            LPC_ADC->ADCR   |= 1 << 4;
+            position.com_val = (LPC_ADC->ADDR2 >> 4) & 0xFFF;
+            break;
+        case 1:
+            LPC_ADC->ADCR  |= 1 << 5;
+            position.b1_val = (LPC_ADC->ADDR4 >> 4) & 0xFFF;
+            break;
+        case 2:
+            LPC_ADC->ADCR  |= 1 << 2;
+            position.b2_val = (LPC_ADC->ADDR5 >> 4) & 0xFFF;
+            break;
+        default:;
+    }
 }
 
 void init_bobines() {
@@ -93,10 +120,10 @@ void init_bobines() {
     LPC_PINCON->PINMODE3 |= (2 << 28) | (2 << 30);
     // ADC config
 
-    LPC_ADC->ADCR = (1 << 2) | (1 << 4) | (1 << 5) // SEL: AD0.2, AD0.4, AD0.5
-                  | (1 << 8)                       // CLKDIV: ajusté pour < 13 MHz
-                  | (0x6 << 24)                    // start on MAT1.0
-                  | (1 << 21);                     // PDN: ADC allumé
+    LPC_ADC->ADCR = (1 << 2)    // | (1 << 4) | (1 << 5) // SEL: AD0.2, AD0.4, AD0.5
+                  | (1 << 8)    // CLKDIV: ajusté pour < 13 MHz
+                  | (0x6 << 24) // start on MAT1.0
+                  | (1 << 21);  // PDN: ADC allumé
     LPC_ADC->ADINTEN     = 1 << 8;
     // setting up EINT2
     LPC_PINCON->PINSEL4 &= ~(3 << 24); // EINT2 on P2.12
@@ -106,13 +133,14 @@ void init_bobines() {
     LPC_SC->EXTINT       = 1 << 2; // clearing EXTINT
 
     // setting up TIMER1
-    LPC_SC->PCONP |= 1 << 2; // enabling timer 1
-    LPC_TIM1->PR   = 24;     // 1MHz
-    LPC_TIM1->TCR  = 1 << 1;
-    LPC_TIM1->MR0  = 499; // 500us
-    LPC_TIM1->MCR  = 1;   // reset, stop and interrupt on MR0
-    LPC_TIM1->EMR &= ~(3 << 4);
-    LPC_TIM1->EMR |= 2 << 4; // MAT1.0 HIGH at MR0
+    LPC_PINCON->PINSEL3 |= 3 << 12;
+    LPC_SC->PCONP       |= 1 << 2; // enabling timer 1
+    LPC_TIM1->PR         = 24;     // 1MHz
+    LPC_TIM1->TCR        = 1 << 1;
+    LPC_TIM1->MR0        = MESURE_AFTER; // 500us
+    LPC_TIM1->MCR        = 1;            // interrupt on MR0
+    LPC_TIM1->EMR       &= ~(3 << 4);
+    LPC_TIM1->EMR       |= 2 << 4; // MAT1.0 HIGH at MR0
 
     // setting up IRQ
     NVIC_EnableIRQ(EINT2_IRQn);
