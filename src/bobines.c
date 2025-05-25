@@ -1,5 +1,6 @@
 /* ##################################646f75627420796f7572206f776e206578697374656e6365###################################
 
+;wa
                """          bobines.c
         -\-    _|__
          |\___/  . \        Created on 23 May. 2025 at 11:36
@@ -16,7 +17,8 @@
 
 #define PORTEUSE_INBOX_SIZE 16
 
-static uint16_t message = 1;
+static uint16_t message  = 1;
+position_info   position = { 0 };
 
 static void parsing_porteuse() {
     uint8_t robot = (message & 0xF << 7) >> 7;
@@ -59,7 +61,33 @@ void EINT2_IRQHandler() {
     }
 }
 
+void TIMER1_IRQHandler() {
+    LPC_TIM1->IR     = 1;
+    position.phase   = LPC_GPIO1->FIOPIN;
+    position.com_val = (LPC_ADC->ADDR2 >> 4) & 0xFFF;
+    position.b1_val  = (LPC_ADC->ADDR4 >> 4) & 0xFFF;
+    position.b2_val  = (LPC_ADC->ADDR5 >> 4) & 0xFFF;
+    position.phase   = (position.phase >> 13) & 0x3;
+}
+
 void init_bobines() {
+    // setting up GPIO for digital read
+    LPC_PINCON->PINSEL3  &= ~(0xF << 26);
+    LPC_GPIO1->FIODIR    &= ~(0x3 << 13);
+    // setting up ADC pins and pincon
+    LPC_SC->PCONP        |= 1 << 12; // enabling ADC
+    LPC_PINCON->PINSEL1  &= ~(3 << 18);
+    LPC_PINCON->PINSEL1  |= (1 << 18);   // P0.25
+    LPC_PINCON->PINSEL3  |= (0xF << 28); // P1.30 et P1.31
+    LPC_PINCON->PINMODE1 &= ~(3 << 18);  // P0.25 sans pull du tout
+    LPC_PINCON->PINMODE1 |= (2 << 18);
+    LPC_PINCON->PINMODE3 &= ~(3 << 28 | 3 << 30); // P1.30 et P1.31 sans pull du tout
+    LPC_PINCON->PINMODE3 |= (2 << 28) | (2 << 30);
+    // ADC config
+    LPC_ADC->ADCR         = (1 << 2) | (1 << 4) | (1 << 5) // SEL: AD0.2, AD0.4, AD0.5
+                  | (22 << 8)                              // CLKDIV: ajusté pour < 13 MHz
+                  | (1 << 16)                              // BURST: mode burst activé
+                  | (1 << 21);                             // PDN: ADC allumé
     // setting up EINT2
     LPC_PINCON->PINSEL4 &= ~(3 << 24); // EINT2 on P2.12
     LPC_PINCON->PINSEL4 |= 1 << 24;
@@ -68,8 +96,12 @@ void init_bobines() {
     LPC_SC->EXTINT       = 1 << 2; // clearing EXTINT
 
     // setting up TIMER1
-    LPC_TIM1->MCR = 0;
+    LPC_TIM1->PR  = 24; // 10MHz
     LPC_TIM1->TCR = 1 << 1;
     LPC_TIM1->TCR = 1;
-    // setting up ADC
+    LPC_TIM1->MR0 = 39; // 4us
+    LPC_TIM1->MCR = 7;  // reset, stop and interrupt on MR0
+    NVIC_EnableIRQ(EINT2_IRQn);
+    NVIC_SetPriority(EINT2_IRQn, 3); // un peu moins prioritaire que l'IR
+    NVIC_EnableIRQ(TIMER1_IRQn);     // faible priorité car en vrai osef
 }

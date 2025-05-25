@@ -32,4 +32,18 @@ typedef struct {
         char         livraison;
 } fifo_bobine;
 
+typedef enum {
+    b1 = 0x1,
+    b2 = 0x3,
+} bobine;
+
+typedef struct {
+        uint8_t  phase; // first three bis are level
+        uint16_t com_val;
+        uint16_t b1_val;
+        uint16_t b2_val;
+} position_info;
+
+extern position_info position;
+
 void init_bobines();
