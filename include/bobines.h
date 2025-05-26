@@ -45,6 +45,6 @@ typedef struct {
         uint16_t b2_val;
 } position_info;
 
-extern position_info position;
+extern volatile position_info position;
 
 void init_bobines();

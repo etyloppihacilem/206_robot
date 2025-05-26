@@ -79,7 +79,7 @@ void conducteur() {
     debug_put_uint(mot_gauche);
     debug_write("\r\n");
 
-    deplacement(0, 0);
+    // deplacement(0, 0);
     // deplacement(mot_droit, mot_gauche);
 }
 
@@ -95,11 +95,11 @@ int main(void) {
     init_params();
     read_params();
     init_com_debug(115200);
-    init_ultrasonic();
-    init_moteurs();
+    // init_ultrasonic();
+    // init_moteurs();
     init_bobines();
     debug_write("hi\r\n");
-    init_ir();
+    // init_ir();
     debug_write("coucou\r\n");
 
     while (1) {

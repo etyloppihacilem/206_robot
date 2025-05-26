@@ -5,7 +5,7 @@
 
 #define IMPULSES_COUNT 20
 
-uint32_t reset_cpt      = 4000; // 5Hz
+int32_t reset_cpt      = 4000; // 5Hz
 int32_t  ultrasonic_cpt = 0;
 
 static int8_t   nbpulse    = 1; // for init impulse to set 0 out

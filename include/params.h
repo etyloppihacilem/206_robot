@@ -38,10 +38,10 @@ typedef enum {
 } t_debug_pos;
 
 typedef enum {
-    rien_moteur = 0b11,
-    pwm_raw     = 0b10,
-    vitesse     = 0b01,
-    vitesse_lue = 0b00, // non implémentée
+    rien_moteur     = 0b11,
+    pwm_raw         = 0b10,
+    vitesse_demande = 0b01,
+    vitesse_lue     = 0b00, // non implémentée
 } t_debug_moteur;
 
 extern uint8_t        id_robot;
