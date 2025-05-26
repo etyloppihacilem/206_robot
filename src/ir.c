@@ -103,10 +103,10 @@ void init_ir() {
     update_ir();
     for (uint8_t i = 0; i < TRAME_SIZE; i++)
         trame1[i] = trame0[i]; // on copie tout ce qui est pareil et ne changera pas
-    // IR SYNC 2
-    LPC_PINCON->PINSEL3 &= 3 << 4; // P1.18 pour IRSync 2
+    // // IR SYNC 2
+    LPC_PINCON->PINSEL3 &= ~(3 << 4); // P1.18 pour IRSync 2
     LPC_GPIO1->FIODIR   |= 1 << 18;
-    // module init
+    // // module init
     LPC_SC->PCLKSEL1    |= 1 << 15; // timer3 at 50MHz
     LPC_SC->PCONP       |= 1 << 23; // enable timer3
     LPC_PINCON->PINSEL0 |= 3 << 20; // P0.10 as MAT3.0

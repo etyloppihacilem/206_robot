@@ -10,16 +10,12 @@
 
 #include "bobines.h"
 #include "LPC17xx.h"
-#include "com_debug.h"
 #include "livraisons.h"
 #include "params.h"
 #include <stdint.h>
 
 #define PORTEUSE_INBOX_SIZE 16
 #define MESURE_AFTER 699 // us
-
-#define BIT(n)          (1UL << (n))
-#define PINS(n,shift)   ((n ## UL) << (shift))
 
 static uint16_t         message    = 1;
 volatile static uint8_t cpt_mesure = 0;
@@ -76,27 +72,20 @@ void EINT2_IRQHandler() {
 }
 
 void TIMER1_IRQHandler() {
-    // if (cpt_mesure < 3) {
-    //     LPC_TIM1->MR0 += 10;
-    //     LPC_TIM1->EMR &= ~1;
-    // }
     LPC_TIM1->IR   = 1;
-    position.phase = LPC_GPIO1->FIOPIN;
-    position.phase = (position.phase >> 10) & 0x3;
+    uint32_t tmp = LPC_GPIO1->FIOPIN;
+    position.phase = (tmp >> 26) & 0x3;
 }
 
 volatile uint8_t next_ch = 2;
 
 void ADC_IRQHandler() {
-    uint32_t gdr   = LPC_ADC->ADGDR; // <-- lit & efface DONE global
-    // LPC_ADC->ADCR &= ~(1ul << 21);
+    uint32_t gdr = LPC_ADC->ADGDR; // lit & efface DONE global
     if (!(gdr & 1ul << 31))
         return;
-    debug_put_hex(gdr);
-    debug_write("\r\n");
 
-    uint8_t  ch  = (gdr >> 24) & 0x7;  /* canal terminé (CHN)        */
-    uint16_t val = (gdr >> 4) & 0xFFF; /* résultat 12 bits           */
+    uint8_t  ch  = (gdr >> 24) & 0x7;  // canal terminé (CHN)
+    uint16_t val = (gdr >> 4) & 0xFFF; // résultat 12 bits
 
     switch (ch) {
         case 2:
@@ -115,18 +104,15 @@ void ADC_IRQHandler() {
             break; /* sécurité */
     }
 
-    /* prépare la prochaine conversion : on change *uniquement* SEL        */
+    // prépare la prochaine conversion : on change uniquement SEL
     LPC_ADC->ADCR  = (LPC_ADC->ADCR & ~0xFFul) | (1 << next_ch);
-    // LPC_ADC->ADCR |= 1ul << 21;
     LPC_TIM1->EMR &= ~1ul;
-    // debug_put_hex(LPC_ADC->ADCR);
-    // debug_write("\r\n");
 }
 
 void init_bobines() {
     // setting up GPIO for digital read
     LPC_PINCON->PINSEL3  &= ~(0xFul << 20);
-    LPC_GPIO1->FIODIR    &= ~(0x3ul << 10); // P1.26 et P1.27
+    LPC_GPIO1->FIODIR    &= ~(0x3ul << 26); // P1.26 et P1.27
     LPC_PINCON->PINMODE3 &= ~(0xFul << 20);
     LPC_PINCON->PINMODE3 |= 0xAul << 20;
     // setting up ADC pins and pincon
@@ -162,8 +148,6 @@ void init_bobines() {
     LPC_TIM1->EMR       &= ~(3ul << 4);
     LPC_TIM1->EMR       |= 2 << 4; // MAT1.0 HIGH at MR0
 
-    // debug_put_hex(LPC_SC->PCLKSEL0);
-    // debug_write("\r\n");
     // setting up IRQ
     NVIC_EnableIRQ(ADC_IRQn);
     NVIC_EnableIRQ(TIMER1_IRQn);     // faible priorité car en vrai osef

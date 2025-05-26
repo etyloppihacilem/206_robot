@@ -95,11 +95,11 @@ int main(void) {
     init_params();
     read_params();
     init_com_debug(115200);
-    // init_ultrasonic();
-    // init_moteurs();
+    init_ultrasonic();
+    init_moteurs();
     init_bobines();
     debug_write("hi\r\n");
-    // init_ir();
+    init_ir();
     debug_write("coucou\r\n");
 
     while (1) {
