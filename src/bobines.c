@@ -144,7 +144,7 @@ void init_bobines() {
     LPC_PINCON->PINSEL4 |= 1ul << 24;
     LPC_SC->EXTMODE     |= 1 << 2; // on edge
     LPC_SC->EXTPOLAR    |= 1 << 2; // on rising edge
-    LPC_SC->EXTINT       = 1 << 2; // clearing EXTINT
+    LPC_SC->EXTINT      |= 1 << 2; // clearing EXTINT
 
     // setting up TIMER1
     LPC_PINCON->PINSEL3 |= 3 << 12; // P1.22 as MAT1.0
