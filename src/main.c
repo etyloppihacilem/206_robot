@@ -8,6 +8,8 @@
 
 ##################################################################################################################### */
 
+#include "DTMF.h"
+#include "LPC17xx.h"
 #include "bobines.h"
 #include "com_debug.h"
 #include "ir.h"
@@ -16,8 +18,6 @@
 #include "params.h"
 #include "ultrasonic.h"
 #include <stdint.h>
-
-#include "LPC17xx.h"
 
 uint8_t next_stop     = 0;
 char    ns_side       = droite;
@@ -47,8 +47,8 @@ static const uint16_t inv_amplitude   = 1;
  * */
 void conducteur() {
     // static uint16_t max_ampl   = 0;
-    uint16_t        mot_droit  = 512;
-    uint16_t        mot_gauche = 512;
+    uint16_t mot_droit  = 512;
+    uint16_t mot_gauche = 512;
 
     // position du robot sur le fil
     // if (max_ampl < position.com_val)
@@ -89,12 +89,12 @@ void conducteur() {
     deplacement(mot_droit / 8, mot_gauche / 8);
 }
 
-static void delay_ms(uint32_t ms)
-{
+static void delay_ms(uint32_t ms) {
     /* Petit délai bloquant : ~1 ms par incrément lorsque l’horloge cœur = 100 MHz.
        Ajuste le facteur si tu changes SystemCoreClock.                    */
     volatile uint32_t cycles = ms * (SystemCoreClock / 4000U);
-    while (cycles--) __NOP();
+    while (cycles--)
+        __NOP();
 }
 
 int main(void) {
@@ -104,6 +104,7 @@ int main(void) {
     init_ultrasonic();
     init_moteurs();
     init_bobines();
+    init_dtmf();
     debug_write("hi\r\n");
     init_ir();
     debug_write("coucou\r\n");
