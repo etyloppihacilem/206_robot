@@ -37,7 +37,7 @@ void init_moteurs() {
  * vitesse max : 512
  * */
 
-static const uint16_t max_commande  = 512;
+static const uint16_t max_commande  = 1024;
 static const uint16_t coef_commande = 2;
 
 void deplacement(uint16_t droite, uint16_t gauche) {
@@ -46,13 +46,13 @@ void deplacement(uint16_t droite, uint16_t gauche) {
     else if (droite >= max_commande)
         droite = 0;
     else
-        droite = max_commande - droite;
+        droite = ((max_commande - droite) * 400) / max_commande;
     if (gauche == 0)
         gauche = PWM_STOP;
     else if (gauche >= max_commande)
         gauche = 0;
     else
-        gauche = max_commande - gauche;
+        gauche = ((max_commande - gauche) * 400) / max_commande;
     LPC_MCPWM->MCPW0 = droite / coef_commande; // largeur d'impulsion canal 0 (50%)
     LPC_MCPWM->MCPW1 = gauche / coef_commande; // largeur d'impulsion canal 1 (50%)
 }

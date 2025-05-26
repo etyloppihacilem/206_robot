@@ -13,10 +13,10 @@
 #include <stdint.h>
 
 typedef enum {
-    porteuse_0 = 31250, // 1,25ms
-    porteuse_1 = 50000, // 2ms
-    entete     = 68750, // 2,75ms
-    pause      = 10000, // 0,4ms
+    porteuse_0 = 900, // 0.9ms
+    porteuse_1 = 1900, // 1.9ms
+    entete     = 2400, // 2.4ms
+    pause      = 400, // 0.4ms
 } t_porteuse_seq;
 
 typedef enum e_message_type {

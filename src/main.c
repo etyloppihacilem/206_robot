@@ -25,8 +25,8 @@ char    ns_letter     = 0;
 uint8_t vitesse_cible = 50; // en %
 char    state         = dispo;
 
-static const uint16_t coef_correction = 50;
-static const uint16_t inv_amplitude   = 125;
+static const uint16_t coef_correction = 4;
+static const uint16_t inv_amplitude   = 1;
 
 /*
  * La procédure est la suivante :
@@ -60,10 +60,10 @@ void conducteur() {
         mot_droit += coef_correction * div_amplitude;
     else
         mot_gauche += coef_correction * div_amplitude;
-    if (position.phase & b1) // 1 si en phase, 0 sinon
-        mot_droit -= coef_correction * div_amplitude;
-    else
-        mot_gauche -= coef_correction * div_amplitude;
+    // if (position.phase & b1) // 1 si en phase, 0 sinon
+    //     mot_gauche -= coef_correction * div_amplitude;
+    // else
+    //     mot_droit -= coef_correction * div_amplitude;
 
     debug_write("dom_val ");
     debug_put_uint(position.com_val);
@@ -78,9 +78,17 @@ void conducteur() {
     debug_write(" GAUCHE ");
     debug_put_uint(mot_gauche);
     debug_write("\r\n");
+    debug_write("Div_amplitude ");
+    debug_put_uint(div_amplitude);
+    debug_write(" coef ");
+    debug_put_uint(coef_correction);
+    debug_write("\r\n");
+    debug_write("max ampl ");
+    debug_put_uint(max_ampl);
+    debug_write("\r\n");
 
-    // deplacement(0, 0);
-    // deplacement(mot_droit, mot_gauche);
+    deplacement(0, 0);
+    // deplacement(mot_droit / 8, mot_gauche / 8);
 }
 
 static void delay_ms(uint32_t ms)
@@ -102,8 +110,19 @@ int main(void) {
     init_ir();
     debug_write("coucou\r\n");
 
+    // uint32_t test = 300;
+    // static const uint32_t test = 1251;
+    // delay_ms(5000);
     while (1) {
         conducteur();
-        delay_ms(500);
+        // LPC_MCPWM->MCPW0 = test; // largeur d'impulsion canal 0 (50%)
+        // LPC_MCPWM->MCPW1 = test * 1.1; // largeur d'impulsion canal 1 (50%)
+        // debug_write("test: ");
+        // debug_put_uint(test);
+        // debug_write("\r\n");
+        // test += 10;
+        // if (test > 1250)
+        //     test = 0;
+        delay_ms(250);
     }
 }

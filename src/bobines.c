@@ -10,16 +10,17 @@
 
 #include "bobines.h"
 #include "LPC17xx.h"
+#include "com_debug.h"
 #include "livraisons.h"
 #include "params.h"
 #include <stdint.h>
 
 #define PORTEUSE_INBOX_SIZE 16
-#define MESURE_AFTER 699 // us
+#define MESURE_AFTER 200 // us
 
-static uint16_t         message    = 1;
-volatile static uint8_t cpt_mesure = 0;
-volatile position_info  position   = { 0 };
+volatile static uint16_t message    = 1;
+volatile static uint8_t  cpt_mesure = 0;
+volatile position_info   position   = { 0 };
 
 static void parsing_porteuse() {
     uint8_t robot = (message & 0xF << 7) >> 7;
@@ -45,21 +46,24 @@ static void parsing_porteuse() {
     }
 }
 
-static uint32_t last_time = 0;
+volatile static uint32_t last_time = 0;
 
 void EINT2_IRQHandler() {
     LPC_SC->EXTINT |= 1 << 2;
     uint32_t time   = LPC_TIM1->TC;
     LPC_TIM1->TCR   = 1;
-    if (time - last_time > pause) {
-        LPC_TIM1->TCR = 1 << 1;
-        LPC_TIM1->MR0 = MESURE_AFTER;
+    if (time - last_time > (uint32_t) pause) {
+        LPC_TIM1->TCR     = 1 << 1;
+        LPC_GPIO0->FIOCLR = (1ul << 22);
+        LPC_TIM1->MR0     = MESURE_AFTER;
         if (cpt_mesure++ >= 2)
             cpt_mesure = 0;
         LPC_TIM1->TCR = 1;
-        last_time     = 0;
+    } else {
+        last_time = time;
+        return;
     }
-    last_time = time;
+    time = last_time;
     if (time > entete) {
         if (message != 1 && !(message & (1 << 15)))
             parsing_porteuse();
@@ -69,11 +73,12 @@ void EINT2_IRQHandler() {
     } else if (time > porteuse_0) {
         message = (message << 1);
     }
+    last_time = 0;
 }
 
 void TIMER1_IRQHandler() {
     LPC_TIM1->IR   = 1;
-    uint32_t tmp = LPC_GPIO1->FIOPIN;
+    uint32_t tmp   = LPC_GPIO1->FIOPIN;
     position.phase = (tmp >> 26) & 0x3;
 }
 
@@ -83,9 +88,9 @@ void ADC_IRQHandler() {
     uint32_t gdr = LPC_ADC->ADGDR; // lit & efface DONE global
     if (!(gdr & 1ul << 31))
         return;
-
-    uint8_t  ch  = (gdr >> 24) & 0x7;  // canal terminé (CHN)
-    uint16_t val = (gdr >> 4) & 0xFFF; // résultat 12 bits
+    LPC_GPIO0->FIOSET = (1ul << 22);
+    uint8_t  ch       = (gdr >> 24) & 0x7;  // canal terminé (CHN)
+    uint16_t val      = (gdr >> 4) & 0xFFF; // résultat 12 bits
 
     switch (ch) {
         case 2:
@@ -110,6 +115,9 @@ void ADC_IRQHandler() {
 }
 
 void init_bobines() {
+    // Red LED
+    LPC_PINCON->PINSEL1  &= ~(3 << 12);
+    LPC_GPIO0->FIODIR    |= (1 << 22);
     // setting up GPIO for digital read
     LPC_PINCON->PINSEL3  &= ~(0xFul << 20);
     LPC_GPIO1->FIODIR    &= ~(0x3ul << 26); // P1.26 et P1.27
@@ -127,7 +135,7 @@ void init_bobines() {
     // ADC config
 
     LPC_ADC->ADCR = (1 << 2)      // | (1 << 4) | (1 << 5) // SEL: AD0.2, AD0.4, AD0.5
-                  | (9 << 8)      // CLKDIV: ajusté pour < 13 MHz
+                  | (1 << 8)      // CLKDIV: ajusté pour < 13 MHz
                   | (0x6ul << 24) // start on MAT1.0
                   | (1 << 21);    // PDN: ADC allumé
     LPC_ADC->ADINTEN     = 1 << 8;
@@ -143,6 +151,7 @@ void init_bobines() {
     LPC_SC->PCONP       |= 1 << 2;  // enabling timer 1
     LPC_TIM1->PR         = 24;      // 1MHz
     LPC_TIM1->TCR        = 1 << 1;
+    LPC_TIM1->TCR        = 0;
     LPC_TIM1->MR0        = MESURE_AFTER; // 500us
     LPC_TIM1->MCR        = 1;            // interrupt on MR0
     LPC_TIM1->EMR       &= ~(3ul << 4);
