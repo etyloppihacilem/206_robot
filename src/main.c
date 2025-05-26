@@ -46,49 +46,47 @@ static const uint16_t inv_amplitude   = 1;
  *
  * */
 void conducteur() {
-    static uint16_t max_ampl   = 0;
+    // static uint16_t max_ampl   = 0;
     uint16_t        mot_droit  = 512;
     uint16_t        mot_gauche = 512;
 
     // position du robot sur le fil
-    if (max_ampl < position.com_val)
-        max_ampl = position.com_val;
-    uint16_t div_amplitude = (max_ampl - position.com_val) / inv_amplitude;
+    // if (max_ampl < position.com_val)
+    //     max_ampl = position.com_val;
+    // uint16_t div_amplitude = (max_ampl - position.com_val) / inv_amplitude;
 
     // angle du robot bobine avant
     if (position.phase & b2) // 1 si en phase, 0 sinon
-        mot_droit += coef_correction * div_amplitude;
+        mot_droit += 256;
     else
-        mot_gauche += coef_correction * div_amplitude;
+        mot_gauche += 256;
     // if (position.phase & b1) // 1 si en phase, 0 sinon
     //     mot_gauche -= coef_correction * div_amplitude;
     // else
     //     mot_droit -= coef_correction * div_amplitude;
 
-    debug_write("dom_val ");
-    debug_put_uint(position.com_val);
-    debug_write("\r\nb1_val ");
-    debug_put_uint(position.b1_val);
-    debug_write("\r\nb2_val ");
-    debug_put_uint(position.b2_val);
-    debug_write("\r\nphase ");
-    debug_put_uint(position.phase);
-    debug_write("\r\nDROIT ");
-    debug_put_uint(mot_droit);
-    debug_write(" GAUCHE ");
-    debug_put_uint(mot_gauche);
-    debug_write("\r\n");
-    debug_write("Div_amplitude ");
-    debug_put_uint(div_amplitude);
-    debug_write(" coef ");
-    debug_put_uint(coef_correction);
-    debug_write("\r\n");
-    debug_write("max ampl ");
-    debug_put_uint(max_ampl);
-    debug_write("\r\n");
+    // debug_write("dom_val ");
+    // debug_put_uint(position.com_val);
+    // debug_write("\r\nb1_val ");
+    // debug_put_uint(position.b1_val);
+    // debug_write("\r\nb2_val ");
+    // debug_put_uint(position.b2_val);
+    // debug_write("\r\nphase ");
+    // debug_put_uint(position.phase);
+    // debug_write("\r\nDROIT ");
+    // debug_put_uint(mot_droit);
+    // debug_write(" GAUCHE ");
+    // debug_put_uint(mot_gauche);
+    // debug_write("\r\n");
+    // debug_write("coef ");
+    // debug_put_uint(coef_correction);
+    // debug_write("\r\n");
+    // debug_write("max ampl ");
+    // debug_put_uint(max_ampl);
+    // debug_write("\r\n");
 
-    deplacement(0, 0);
-    // deplacement(mot_droit / 8, mot_gauche / 8);
+    // deplacement(0, 0);
+    deplacement(mot_droit / 8, mot_gauche / 8);
 }
 
 static void delay_ms(uint32_t ms)
