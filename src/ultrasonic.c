@@ -5,12 +5,12 @@
 
 #define IMPULSES_COUNT 20
 
-int32_t reset_cpt      = 4000; // 5Hz
-int32_t  ultrasonic_cpt = 0;
+int32_t          reset_cpt      = 4000; // 5Hz
+volatile int32_t ultrasonic_cpt = 0;
 
-static int8_t   nbpulse    = 1; // for init impulse to set 0 out
-static uint32_t time_count = 0;
-static uint32_t distance   = 0; // UINT32_MAX to tell incoherent result.
+volatile static int8_t   nbpulse    = 1; // for init impulse to set 0 out
+volatile static uint32_t time_count = 0;
+volatile static uint32_t distance   = 0; // UINT32_MAX to tell incoherent result.
 
 void PWM1_IRQHandler() {
     if (LPC_PWM1->IR & 1 << 9) {
@@ -38,7 +38,7 @@ void EINT3_IRQHandler() {
     // distance entre le mic et le haut-parleur
 }
 
-void init_ultrasonic(void) { // UltraSonic Sensor
+void update_ultrasonic_refresh() {
     switch (mesure_tele) {
         default:
         case Hz10:
@@ -53,6 +53,10 @@ void init_ultrasonic(void) { // UltraSonic Sensor
         case Hz25:
             reset_cpt = 800;
     }
+}
+
+void init_ultrasonic(void) { // UltraSonic Sensor
+    update_ultrasonic_refresh();
     ultrasonic_cpt       = reset_cpt;
     // PINSEL
     LPC_PINCON->PINSEL3 |= 1 << 17; // P1.24 en mode PWM 1.5
@@ -80,11 +84,9 @@ void measure_ultrasonic(void) {
     if (nbpulse != 0 || LPC_TIM0->TC != 0)
         return; // une mesure est déjà en cours
 
-    nbpulse = IMPULSES_COUNT;
+    nbpulse        = IMPULSES_COUNT;
     // distance       = 0; // to tell a measure is ongoing
-    __disable_irq();
-    time_count = 0;
-    __enable_irq();
+    time_count     = 0;
     LPC_PWM1->PCR |= 1 << 13;  // Enable PWM5 output
     LPC_PWM1->TCR |= (1 << 3); // Enable PWM Counter and pwm
 }

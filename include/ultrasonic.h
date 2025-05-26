@@ -16,3 +16,4 @@ void init_ultrasonic(void);
 
 void     measure_ultrasonic(void);
 uint32_t get_distance_USS(void);
+void     update_ultrasonic_refresh();
