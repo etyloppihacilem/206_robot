@@ -18,6 +18,7 @@
 #include "params.h"
 #include "ultrasonic.h"
 #include <stdint.h>
+#include "it_urg.h"
 
 uint8_t next_stop     = 0;
 char    ns_side       = droite;
@@ -98,15 +99,16 @@ static void delay_ms(uint32_t ms) {
 }
 
 int main(void) {
-    init_params();
-    read_params();
+    // init_params();
+    // read_params();
     init_com_debug(115200);
-    init_ultrasonic();
-    init_moteurs();
-    init_bobines();
-    init_dtmf();
+    // init_ultrasonic();
+    // init_moteurs();
+    // init_bobines();
+    // init_dtmf();
     debug_write("hi\r\n");
-    init_ir();
+    // init_ir();
+    // init_it_urg();
     debug_write("coucou\r\n");
 
     // uint32_t test = 300;
@@ -122,6 +124,6 @@ int main(void) {
         // test += 10;
         // if (test > 1250)
         //     test = 0;
-        delay_ms(250);
+        // delay_ms(250);
     }
 }
